@@ -76,7 +76,7 @@
         }
 
         button {
-            background-color: #28a745; /* green */
+            background-color: #28a745;
             color: white;
         }
 
@@ -85,7 +85,7 @@
         }
 
         .btn-cancel {
-            background-color: #6c757d; /* gray */
+            background-color: #6c757d;
             color: white;
             text-align: center;
             line-height: normal;
@@ -100,6 +100,7 @@
 
 <div class="container">
     <h1>Add New Customer</h1>
+
     <form action="{{ route('customers.store') }}" method="POST">
         @csrf
 
@@ -118,6 +119,17 @@
 
         <label for="dob">Date of Birth:</label>
         <input type="date" id="dob" name="dob" required>
+
+        <!-- ✅ ADDED STEP 5: Assign User -->
+        <label for="user_id">Assign to User:</label>
+        <select id="user_id" name="user_id">
+            <option value="">-- Unassigned --</option>
+            @foreach($users as $user)
+                <option value="{{ $user->id }}">
+                    {{ $user->name }}
+                </option>
+            @endforeach
+        </select>
 
         <div class="button-group">
             <button type="submit">Save Customer</button>

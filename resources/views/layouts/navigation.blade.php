@@ -22,9 +22,10 @@
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-            
+
             <!-- Left Side -->
             <div class="flex">
+
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}">
@@ -36,37 +37,92 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+
+                    <!-- Dashboard (ALL ROLES CAN SEE) -->
                     <x-nav-link :href="route('dashboard')" 
                         :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('customers.index')" 
-                        :active="request()->routeIs('customers.*')">
-                        {{ __('Customer') }}
-                    </x-nav-link>
+                    <!-- ADMIN ONLY MODULES -->
+                    @if(auth()->user()->role === 'admin')
 
-                    <x-nav-link :href="route('products.index')" 
-                        :active="request()->routeIs('products.*')">
-                        {{ __('Electric Usage') }}
-                    </x-nav-link>
+                        <x-nav-link :href="route('customers.index')" 
+                            :active="request()->routeIs('customers.*')">
+                            {{ __('Customer') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('usages.index')" 
+                            :active="request()->routeIs('usages.*')">
+                            {{ __('Electric Usage') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('bills.index')" 
+                            :active="request()->routeIs('bills.*')">
+                            {{ __('Electric Bill') }}
+                        </x-nav-link>
+
+                    @endif
+
+                    <!-- STAFF ONLY MODULES -->
+                    @if(auth()->user()->role === 'staff')
+
+                        <x-nav-link :href="route('usages.index')" 
+                            :active="request()->routeIs('usages.*')">
+                            {{ __('Electric Usage') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('bills.index')" 
+                            :active="request()->routeIs('bills.*')">
+                            {{ __('Electric Bill') }}
+                        </x-nav-link>
+
+                    @endif
+
+                    <!-- ADMIN + STAFF MODULES (FIXED HERE) -->
+                    @if(in_array(auth()->user()->role, ['admin', 'staff']))
+
+                        <x-nav-link :href="route('payments.index')" 
+                            :active="request()->routeIs('payments.*')">
+                            {{ __('Payments') }}
+                        </x-nav-link>
+
+                    @endif
+
+                    <!-- USER ONLY MODULES -->
+                    @if(auth()->user()->role === 'user')
+
+                        <x-nav-link :href="route('usages.index')" 
+                            :active="request()->routeIs('usages.*')">
+                            {{ __('Electric Usage') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('bills.index')" 
+                            :active="request()->routeIs('bills.*')">
+                            {{ __('Electric Bills') }}
+                        </x-nav-link>
+
+                    @endif
+
                 </div>
             </div>
 
             <!-- Right Side (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
+
                 <x-dropdown align="right" width="48">
 
                     <!-- Trigger -->
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition">
 
-                            <!-- Avatar chagened-->
-                           <img src="{{ Auth::user()->avatar 
+                            <!-- Avatar -->
+                            <img src="{{ Auth::user()->avatar 
                                 ? asset('storage/' . Auth::user()->avatar) 
                                 : asset('avatars/defaultprofile.png') }}" 
                                 class="h-8 w-8 rounded-full border-2 border-green-500" 
                                 alt="User Avatar">
+
                             <!-- Name -->   
                             <div class="ms-2 text-gray-700">
                                 {{ Auth::user()->name }}
@@ -80,6 +136,7 @@
                                         clip-rule="evenodd"/>
                                 </svg>
                             </div>
+
                         </button>
                     </x-slot>
 
@@ -106,7 +163,7 @@
             <div class="-me-2 flex items-center sm:hidden">
                 <button @click="open = !open"
                     class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none transition">
-                    
+
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': !open}" 
                             class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -117,41 +174,72 @@
                     </svg>
                 </button>
             </div>
+
         </div>
     </div>
 
     <!-- Responsive Menu -->
     <div :class="{'block': open, 'hidden': !open}" class="hidden sm:hidden">
 
-        <!-- Desktop Navigation Links -->
-<div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+        <!-- Mobile Navigation Links -->
+        <div class="pt-4 pb-1 border-t border-gray-200">
 
-    <!-- Dashboard -->
-    <x-nav-link 
-        :href="route('dashboard')" 
-        :active="request()->routeIs('dashboard')">
-        {{ __('Dashboard') }}
-    </x-nav-link>
+            <!-- Dashboard -->
+            <x-responsive-nav-link :href="route('dashboard')">
+                {{ __('Dashboard') }}
+            </x-responsive-nav-link>
 
-    <!-- Customer -->
-    <x-nav-link :href="route('customers.index')" :active="request()->routeIs('customers.index')">
-    Customer
-</x-nav-link>
+            <!-- ADMIN ONLY -->
+            @if(auth()->user()->role === 'admin')
 
-    <!-- Plants -->
-    <x-nav-link :href="route('products.index')" :active="request()->routeIs('products.index')">
-    Plants
-</x-nav-link>
-</div>
+                <x-responsive-nav-link :href="route('customers.index')">
+                    Customer
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('usages.index')">
+                    Electric Usage
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('bills.index')">
+                    Electric Bill
+                </x-responsive-nav-link>
+
+            @endif
+
+            <!-- STAFF ONLY -->
+            @if(auth()->user()->role === 'staff')
+
+                <x-responsive-nav-link :href="route('usages.index')">
+                    Electric Usage
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('bills.index')">
+                    Electric Bill
+                </x-responsive-nav-link>
+
+            @endif
+
+            <!-- ADMIN + STAFF MODULES (FIXED HERE) -->
+            @if(in_array(auth()->user()->role, ['admin', 'staff']))
+
+                <x-responsive-nav-link :href="route('payments.index')">
+                    Payments
+                </x-responsive-nav-link>
+
+            @endif
+
+        </div>
 
         <!-- User Info -->
         <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4 flex items-center space-x-3">
 
-                <!-- SAME avatar logic -->
-                <img src="{{ asset('avatars/avatar' . $avatarNumber . '.png') }}" 
-                     class="h-10 w-10 rounded-full border-2 border-green-500" 
-                     alt="User Avatar">
+                <!-- Avatar -->
+                <img src="{{ Auth::user()->avatar 
+                    ? asset('storage/' . Auth::user()->avatar) 
+                    : asset('avatars/defaultprofile.png') }}" 
+                    class="h-10 w-10 rounded-full border-2 border-green-500" 
+                    alt="User Avatar">
 
                 <div>
                     <div class="text-base font-medium text-gray-800">
@@ -179,5 +267,6 @@
                 </form>
             </div>
         </div>
+
     </div>
 </nav>
