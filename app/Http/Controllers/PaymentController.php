@@ -1,0 +1,168 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Payment;
+use App\Models\Customer;
+use App\Models\ElectricBill;
+use Barryvdh\DomPDF\Facade\Pdf;
+
+class PaymentController extends Controller
+{
+    public function index()
+    {
+        $user = auth()->user();
+
+        if (!$user) abort(403);
+
+        // 👑 admin + staff → full access
+        if (in_array($user->role, ['admin', 'staff'])) {
+            $payments = Payment::with('customer', 'bill.usage')->get();
+        }
+
+        // 👤 customer → only own records
+        else {
+            $payments = Payment::with('customer', 'bill.usage')
+                ->where('customer_id', $user->customer_id)
+                ->get();
+        }
+
+        return view('payments.index', compact('payments'));
+    }
+
+    public function create()
+    {
+        $user = auth()->user();
+
+        if (!$user) abort(403);
+
+        // customers dropdown
+        $customers = Customer::when($user->role === 'customer', function ($q) use ($user) {
+            $q->where('id', $user->customer_id);
+        })->get();
+
+        // bills dropdown
+        $bills = ElectricBill::where('status', 'unpaid')
+            ->when($user->role === 'customer', function ($q) use ($user) {
+                $q->whereHas('usage', function ($q2) use ($user) {
+                    $q2->where('customer_id', $user->customer_id);
+                });
+            })
+            ->get();
+
+        return view('payments.create', compact('customers', 'bills'));
+    }
+
+    public function store(Request $request)
+{
+    $user = auth()->user();
+
+    if (!$user) {
+        abort(403);
+    }
+
+    // ✅ ONLY admin + staff can add payments
+    if (!in_array($user->role, ['admin', 'staff'])) {
+        abort(403, 'Unauthorized action.');
+    }
+
+    $validated = $request->validate([
+        'customer_id' => 'required|exists:customers,id',
+        'bill_id' => 'required|exists:electric_bills,id',
+        'amount_paid' => 'required|numeric|min:0',
+    ]);
+
+    $bill = ElectricBill::findOrFail($validated['bill_id']);
+
+    Payment::create([
+        'customer_id' => $validated['customer_id'],
+        'bill_id' => $validated['bill_id'],
+        'amount_paid' => $validated['amount_paid'],
+        'date_paid' => now(),
+    ]);
+
+    if ($validated['amount_paid'] >= $bill->bill_amount) {
+        $bill->update(['status' => 'paid']);
+    }
+
+    return redirect()->back()->with('success', 'Payment recorded successfully!');
+}
+
+
+    public function edit(string $id)
+    {
+        $payment = Payment::with('customer', 'bill.usage')->findOrFail($id);
+
+        $this->authorizePayment($payment);
+
+        return view('payments.edit', compact('payment'));
+    }
+
+    public function update(Request $request, string $id)
+    {
+        $request->validate([
+            'amount_paid' => 'required|numeric|min:0',
+            'date_paid' => 'required|date',
+        ]);
+
+        $payment = Payment::findOrFail($id);
+
+        $this->authorizePayment($payment);
+
+        $payment->update([
+            'amount_paid' => $request->amount_paid,
+            'date_paid' => $request->date_paid,
+        ]);
+
+        return redirect()->route('payments.index')
+            ->with('success', 'Payment updated successfully!');
+    }
+
+    public function destroy($id)
+    {
+        $payment = Payment::findOrFail($id);
+
+        $this->authorizePayment($payment);
+
+        $payment->delete();
+
+        return redirect()->route('payments.index')
+            ->with('success', 'Payment deleted successfully!');
+    }
+
+    public function pdf()
+    {
+        $user = auth()->user();
+
+        if (in_array($user->role, ['admin', 'staff'])) {
+            $payments = Payment::with('customer', 'bill.usage')->get();
+        } else {
+            $payments = Payment::with('customer', 'bill.usage')
+                ->where('customer_id', $user->customer_id)
+                ->get();
+        }
+
+        $pdf = Pdf::loadView('payments.pdf', compact('payments'));
+
+        return $pdf->download('payment-records.pdf');
+    }
+
+    // 🔐 SECURITY CHECK
+    private function authorizePayment($payment)
+    {
+        $user = auth()->user();
+
+        if (!$user) abort(403);
+
+        // admin + staff full access
+        if (in_array($user->role, ['admin', 'staff'])) {
+            return;
+        }
+
+        // customer restriction
+        if ($payment->customer_id !== $user->customer_id) {
+            abort(403, 'Unauthorized action.');
+        }
+    }
+}
