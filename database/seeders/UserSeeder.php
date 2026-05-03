@@ -16,7 +16,7 @@ class UserSeeder extends Seeder
         // 👑 ADMIN (full access)
         User::create([
             'name' => 'Vincent Admin',
-            'email' => 'vincent1@gmail.com',
+            'email' => 'vincent@gmail.com',
             'password' => Hash::make('12345678'),
             'role' => 'admin',
         ]);

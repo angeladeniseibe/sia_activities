@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Customer;
-use App\Models\User; // ✅ ADDED
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class CustomerController extends Controller
@@ -15,80 +14,51 @@ class CustomerController extends Controller
         $search = $request->search;
 
         $customers = Customer::when($search, function ($q) use ($search) {
-                $q->where('name', 'like', "%$search%")
-                  ->orWhere('address', 'like', "%$search%");
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%");
             })
             ->when($user->role !== 'admin', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             })
             ->paginate(5);
 
-        // ✅ ADDED (needed for assign dropdown in index)
-        $users = User::all();
-
-        return view('customers.index', compact('customers', 'search', 'users'));
+        return view('customers.index', compact('customers', 'search'));
     }
 
     public function create()
     {
-        // ✅ ADDED (needed for assign dropdown in create form)
-        $users = User::all();
-
-        return view('customers.create', compact('users'));
+        return view('customers.create');
     }
 
-  public function store(Request $request)
-{
-    $user = auth()->user();
-
-    $data = $request->validate([
-        'name' => 'required',
-        'address' => 'required',
-        'gender' => 'required',
-        'dob' => 'required|date',
-        'user_id' => 'nullable|exists:users,id',
-    ]);
-
-    Customer::create([
-        'name' => $data['name'],
-        'address' => $data['address'],
-        'gender' => $data['gender'],
-        'dob' => $data['dob'],
-
-        // ✅ FIX: consistent ownership logic
-        'user_id' => $user->role === 'admin'
-            ? ($data['user_id'] ?? null)
-            : $user->id,
-    ]);
-
-    return redirect()->route('customers.index')
-        ->with('success', 'Customer created successfully.');
-}
-
-
-    // ✅ ADDED (for index dropdown assignment)
-    public function assignUser(Request $request, Customer $customer)
+    public function store(Request $request)
     {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
+        $user = auth()->user();
+
+        $data = $request->validate([
+            'name' => 'required',
+            'address' => 'required',
+            'gender' => 'required',
+            'dob' => 'required|date',
         ]);
 
-        $customer->update([
-            'user_id' => $request->user_id
+        Customer::create([
+            'name' => $data['name'],
+            'address' => $data['address'],
+            'gender' => $data['gender'],
+            'dob' => $data['dob'],
+            'user_id' => $user->id,
         ]);
 
-        return back()->with('success', 'User assigned successfully.');
+        return redirect()->route('customers.index')
+            ->with('success', 'Customer created successfully.');
     }
 
     public function edit(Customer $customer)
-{
-    $this->authorize($customer);
+    {
+        $this->authorize($customer);
 
-    $users = User::all(); // ✅ ADD THIS
-
-    return view('customers.edit', compact('customer', 'users'));
-}
-
+        return view('customers.edit', compact('customer'));
+    }
 
     public function update(Request $request, Customer $customer)
     {

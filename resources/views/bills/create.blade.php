@@ -49,12 +49,20 @@
         cursor: pointer;
     }
 
+    .btn-save:hover {
+        background: darkgreen;
+    }
+
     .back {
         display: block;
         text-align: center;
         margin-top: 15px;
         text-decoration: none;
         color: #555;
+    }
+
+    .back:hover {
+        color: #000;
     }
 </style>
 
@@ -65,7 +73,6 @@
     <form action="{{ route('bills.store') }}" method="POST">
         @csrf
 
-        <!-- USAGE -->
         <label>Select Usage:</label>
         <select name="usage_id" required>
             <option value="">-- Select Usage --</option>
@@ -76,18 +83,15 @@
             @endforeach
         </select>
 
-        <!-- AMOUNT -->
         <label>Bill Amount:</label>
         <input type="number" name="bill_amount" required>
 
-        <!-- STATUS -->
         <label>Status:</label>
         <select name="status" required>
             <option value="Unpaid">Unpaid</option>
             <option value="Paid">Paid</option>
         </select>
 
-        <!-- DUE DATE -->
         <label>Due Date:</label>
         <input type="date" name="due_date" required>
 

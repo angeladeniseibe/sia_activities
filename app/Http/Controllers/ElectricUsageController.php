@@ -5,144 +5,163 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ElectricUsage;
 use App\Models\Customer;
+use App\Models\ElectricBill;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class ElectricUsageController extends Controller
 {
-    /**
-     * 📄 INDEX
-     */
     public function index(Request $request)
     {
+        $user = auth()->user();
         $search = $request->input('search');
 
         $query = ElectricUsage::with('customer');
 
+        // ✅ role is 'customer', filter by linked customer
+        if ($user->role === 'customer') {
+            $customer = Customer::where('user_id', $user->id)->first();
+
+            if ($customer) {
+                $query->where('customer_id', $customer->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('month', 'like', "%$search%")
-                  ->orWhere('year', 'like', "%$search%")
+                $q->where('month', 'like', "%{$search}%")
+                  ->orWhere('year', 'like', "%{$search}%")
                   ->orWhereHas('customer', function ($c) use ($search) {
-                      $c->where('name', 'like', "%$search%");
+                      $c->where('name', 'like', "%{$search}%");
                   });
             });
         }
 
-        $usages = $query->latest()->get();
+        $usages = $query->orderBy('id', 'asc')
+                        ->paginate(5)
+                        ->withQueryString();
 
         return view('usages.index', compact('usages', 'search'));
     }
 
-    /**
-     * ➕ CREATE FORM
-     */
     public function create()
     {
-        $customers = Customer::orderBy('name')->get();
+        $user = auth()->user();
+
+        $customers = Customer::when($user->role === 'customer', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->orderBy('id', 'asc')
+            ->get();
 
         return view('usages.create', compact('customers'));
     }
 
-    /**
-     * 💾 STORE USAGE
-     */
- public function store(Request $request)
-{
-    if (!auth()->check()) {
-        abort(403, 'You must be logged in');
+    public function store(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user) abort(403);
+
+        if (!in_array($user->role, ['admin', 'staff'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $validated = $request->validate([
+            'customer_id'    => 'required|exists:customers,id',
+            'kilowatts_used' => 'required|numeric|min:0',
+            'rate_per_kwh'   => 'required|numeric|min:0',
+            'month'          => 'required',
+            'year'           => 'required|integer',
+        ]);
+
+        $usage = ElectricUsage::create($validated);
+
+        $billAmount = $usage->kilowatts_used * $usage->rate_per_kwh;
+
+        ElectricBill::create([
+            'usage_id'    => $usage->id,
+            'bill_amount' => $billAmount,
+            'due_date'    => now()->addDays(15),
+        ]);
+
+        return redirect()->route('usages.index')
+            ->with('success', 'Usage + Bill created successfully!');
     }
 
-    $validated = $request->validate([
-        'customer_id' => 'required|exists:customers,id',
-        'kilowatts_used' => 'required|numeric',
-        'rate_per_kwh' => 'required|numeric',
-        'month' => 'required',
-        'year' => 'required|integer',
-    ]);
-
-    ElectricUsage::create($validated);
-
-    return redirect()->route('usages.index')
-        ->with('success', 'Usage created successfully');
-}
-
-
-    /**
-     * ✏️ EDIT
-     */
     public function edit($id)
     {
+        $user = auth()->user();
+
+        if ($user->role === 'customer') {
+            abort(403, 'Unauthorized action.');
+        }
+
         $usage = ElectricUsage::with('customer')->findOrFail($id);
-
-        $this->authorizeUsage($usage);
-
-        $customers = Customer::all();
+        $customers = Customer::orderBy('id', 'asc')->get();
 
         return view('usages.edit', compact('usage', 'customers'));
     }
 
-    /**
-     * 🔄 UPDATE
-     */
-   public function update(Request $request, $id)
-{
-    $validated = $request->validate([
-        'customer_id' => 'required|exists:customers,id',
-        'kilowatts_used' => 'required|numeric',
-        'rate_per_kwh' => 'required|numeric',
-        'month' => 'required',
-        'year' => 'required|integer',
-    ]);
+    public function update(Request $request, $id)
+    {
+        $user = auth()->user();
 
-    $usage = ElectricUsage::findOrFail($id);
+        if ($user->role === 'customer') {
+            abort(403, 'Unauthorized action.');
+        }
 
-    $this->authorizeUsage($usage);
+        $validated = $request->validate([
+            'customer_id'    => 'required|exists:customers,id',
+            'kilowatts_used' => 'required|numeric',
+            'rate_per_kwh'   => 'required|numeric',
+            'month'          => 'required',
+            'year'           => 'required|integer',
+        ]);
 
-    $usage->update($validated);
+        $usage = ElectricUsage::findOrFail($id);
+        $usage->update($validated);
 
-    return redirect()->route('usages.index')
-        ->with('success', 'Usage updated successfully!');
-}
+        return redirect()->route('usages.index')
+            ->with('success', 'Usage updated successfully!');
+    }
 
-
-    /**
-     * ❌ DELETE
-     */
     public function destroy($id)
     {
+        $user = auth()->user();
+
+        if ($user->role === 'customer') {
+            abort(403, 'Unauthorized action.');
+        }
+
         $usage = ElectricUsage::findOrFail($id);
-
-        $this->authorizeUsage($usage);
-
         $usage->delete();
 
         return redirect()->route('usages.index')
             ->with('success', 'Usage deleted successfully!');
     }
 
-    /**
-     * 📄 PDF EXPORT
-     */
     public function downloadPDF()
     {
-        $usages = ElectricUsage::with('customer')->get();
+        $user = auth()->user();
+
+        $query = ElectricUsage::with('customer');
+
+        if ($user->role === 'customer') {
+            $customer = Customer::where('user_id', $user->id)->first();
+
+            if ($customer) {
+                $query->where('customer_id', $customer->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $usages = $query->orderBy('id', 'asc')->get();
 
         $pdf = Pdf::loadView('usages.pdf', compact('usages'));
 
         return $pdf->download('electric_usage_report.pdf');
-    }
-
-    /**
-     * 🔐 SECURITY CHECK
-     */
-    private function authorizeUsage($usage)
-    {
-        $user = auth()->user();
-
-        if (in_array($user->role, ['admin', 'staff'])) {
-            return;
-        }
-
-        abort(403, 'Unauthorized action.');
     }
 }

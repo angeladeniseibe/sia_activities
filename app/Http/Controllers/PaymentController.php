@@ -16,16 +16,19 @@ class PaymentController extends Controller
 
         if (!$user) abort(403);
 
-        // 👑 admin + staff → full access
+        // admin + staff → full access
         if (in_array($user->role, ['admin', 'staff'])) {
-            $payments = Payment::with('customer', 'bill.usage')->get();
+            $payments = Payment::with('customer', 'bill.usage')
+                ->oldest()
+                ->paginate(10);
         }
 
-        // 👤 customer → only own records
+        // customer → only own records
         else {
             $payments = Payment::with('customer', 'bill.usage')
                 ->where('customer_id', $user->customer_id)
-                ->get();
+                ->oldest()
+                ->paginate(10);
         }
 
         return view('payments.index', compact('payments'));
@@ -55,40 +58,39 @@ class PaymentController extends Controller
     }
 
     public function store(Request $request)
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    if (!$user) {
-        abort(403);
+        if (!$user) {
+            abort(403);
+        }
+
+        // ONLY admin + staff can add payments
+        if (!in_array($user->role, ['admin', 'staff'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $validated = $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'bill_id'     => 'required|exists:electric_bills,id',
+            'amount_paid' => 'required|numeric|min:0',
+        ]);
+
+        $bill = ElectricBill::findOrFail($validated['bill_id']);
+
+        Payment::create([
+            'customer_id' => $validated['customer_id'],
+            'bill_id'     => $validated['bill_id'],
+            'amount_paid' => $validated['amount_paid'],
+            'date_paid'   => now(),
+        ]);
+
+        if ($validated['amount_paid'] >= $bill->bill_amount) {
+            $bill->update(['status' => 'paid']);
+        }
+
+        return redirect()->back()->with('success', 'Payment recorded successfully!');
     }
-
-    // ✅ ONLY admin + staff can add payments
-    if (!in_array($user->role, ['admin', 'staff'])) {
-        abort(403, 'Unauthorized action.');
-    }
-
-    $validated = $request->validate([
-        'customer_id' => 'required|exists:customers,id',
-        'bill_id' => 'required|exists:electric_bills,id',
-        'amount_paid' => 'required|numeric|min:0',
-    ]);
-
-    $bill = ElectricBill::findOrFail($validated['bill_id']);
-
-    Payment::create([
-        'customer_id' => $validated['customer_id'],
-        'bill_id' => $validated['bill_id'],
-        'amount_paid' => $validated['amount_paid'],
-        'date_paid' => now(),
-    ]);
-
-    if ($validated['amount_paid'] >= $bill->bill_amount) {
-        $bill->update(['status' => 'paid']);
-    }
-
-    return redirect()->back()->with('success', 'Payment recorded successfully!');
-}
-
 
     public function edit(string $id)
     {
@@ -103,7 +105,7 @@ class PaymentController extends Controller
     {
         $request->validate([
             'amount_paid' => 'required|numeric|min:0',
-            'date_paid' => 'required|date',
+            'date_paid'   => 'required|date',
         ]);
 
         $payment = Payment::findOrFail($id);
@@ -112,7 +114,7 @@ class PaymentController extends Controller
 
         $payment->update([
             'amount_paid' => $request->amount_paid,
-            'date_paid' => $request->date_paid,
+            'date_paid'   => $request->date_paid,
         ]);
 
         return redirect()->route('payments.index')
@@ -148,7 +150,7 @@ class PaymentController extends Controller
         return $pdf->download('payment-records.pdf');
     }
 
-    // 🔐 SECURITY CHECK
+    // Security Check
     private function authorizePayment($payment)
     {
         $user = auth()->user();

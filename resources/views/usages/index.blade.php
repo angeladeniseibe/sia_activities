@@ -9,10 +9,6 @@
         margin: 20px;
     }
 
-    h1 {
-        text-align: center;
-    }
-
     .container {
         width: 95%;
         margin: auto;
@@ -24,6 +20,7 @@
         padding: 8px 20px;
         text-decoration: none;
         border-radius: 5px;
+        font-size: 13px;
     }
 
     table {
@@ -31,6 +28,9 @@
         border-collapse: collapse;
         background: white;
         margin-top: 15px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
     th {
@@ -38,31 +38,61 @@
         color: white;
         padding: 10px;
         text-align: center;
+        font-size: 13px;
+    }
+
+    th.actions-col {
+        background: #1a2533;
     }
 
     td {
         padding: 10px;
         text-align: center;
+        font-size: 13px;
+        color: #333;
     }
 
-    tr:nth-child(even) {
+    tr:nth-child(even) td {
         background: #f2f2f2;
     }
 
+    tr:hover td {
+        background: #eef2ff;
+    }
+
+    td.actions-cell {
+        background: linear-gradient(135deg, #e8f5e9, #fff3e0);
+        border-left: 3px solid #c8e6c9;
+    }
+
+    tr:nth-child(even) td.actions-cell {
+        background: linear-gradient(135deg, #dcedc8, #fff8e1);
+    }
+
+    /* ✅ Uniform button size across all pages */
     .btn-edit {
-        background: green;
+        background: #28a745;
         color: white;
         border: none;
-        padding: 5px 10px;
+        padding: 5px 12px;
+        border-radius: 5px;
         text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-block;
     }
 
     .btn-delete {
-        background: red;
+        background: #dc3545;
         color: white;
         border: none;
-        padding: 5px 10px;
-        text-decoration: none;
+        padding: 5px 12px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-block;
     }
 
     .top-bar {
@@ -79,6 +109,7 @@
         border-radius: 8px;
         text-decoration: none;
         font-weight: 500;
+        font-size: 13px;
     }
 
     .btn-pdf {
@@ -87,10 +118,11 @@
         padding: 8px 16px;
         text-decoration: none;
         border-radius: 6px;
-        margin-left: 5px;
+        margin-top: 14px;
+        display: inline-block;
+        font-size: 13px;
     }
 
-    /* ✅ SEARCH STYLE */
     .search-box {
         margin: 15px 0;
         display: flex;
@@ -98,8 +130,68 @@
     }
 
     .search-box input {
-        padding: 6px;
+        padding: 6px 10px;
         width: 250px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+
+    /* Styled Pagination */
+    .pagination-wrapper {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .pagination-wrapper .page-item .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px !important;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid #dee2e6;
+        color: #495057;
+        background: #fff;
+        transition: all 0.15s;
+        text-decoration: none;
+    }
+
+    .pagination-wrapper .page-item .page-link:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+        color: #007bff;
+    }
+
+    .pagination-wrapper .page-item.active .page-link {
+        background: #007bff;
+        color: #fff;
+        border-color: #007bff;
+    }
+
+    .pagination-wrapper .page-item.disabled .page-link {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+    .pagination-wrapper nav {
+        display: flex;
+        justify-content: center;
+    }
+
+    .pagination-wrapper ul.pagination {
+        display: flex;
+        gap: 6px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-wrap: wrap;
+        justify-content: center;
     }
 </style>
 
@@ -108,11 +200,10 @@
     <h2 class="text-center mb-3">Electric Usages</h2>
 
     <div class="top-bar">
-        <a href="{{ route('dashboard') }}" class="btn btn-dashboard">
+        <a href="{{ route('dashboard') }}" class="btn-dashboard">
             ← Dashboard
         </a>
 
-        {{-- STAFF + ADMIN --}}
         @if(in_array(auth()->user()->role, ['admin', 'staff']))
             <a href="{{ route('usages.create') }}" class="btn-add">
                 + Add Usage
@@ -120,7 +211,6 @@
         @endif
     </div>
 
-    {{-- ✅ SEARCH BAR (ADDED ONLY CHANGE) --}}
     <form method="GET" class="search-box">
         <input type="text"
                name="search"
@@ -132,11 +222,10 @@
         </button>
     </form>
 
-    <table class="table table-bordered text-center">
-
-        <thead class="table-dark">
+    <table>
+        <thead>
             <tr>
-                <th>Usage ID</th>
+                <th>ID</th>
                 <th>Customer</th>
                 <th>KWH Used</th>
                 <th>Rate</th>
@@ -144,16 +233,15 @@
                 <th>Year</th>
 
                 @if(auth()->user()->role === 'admin')
-                    <th>Actions</th>
+                    <th class="actions-col">Actions</th>
                 @endif
             </tr>
         </thead>
 
         <tbody>
-
         @foreach($usages as $usage)
             <tr>
-                <td>{{ $usage->id }}</td>
+                <td>{{ $usages->firstItem() + $loop->index }}</td>
                 <td>{{ $usage->customer->name }}</td>
                 <td>{{ $usage->kilowatts_used }}</td>
                 <td>{{ $usage->rate_per_kwh }}</td>
@@ -161,36 +249,33 @@
                 <td>{{ $usage->year }}</td>
 
                 @if(auth()->user()->role === 'admin')
-                <td>
-                    <a href="{{ route('usages.edit', $usage->id) }}"
-                       class="btn-edit">
+                <td class="actions-cell">
+                    <a href="{{ route('usages.edit', $usage->id) }}" class="btn-edit">
                         Edit
                     </a>
 
                     <form action="{{ route('usages.destroy', $usage->id) }}"
                           method="POST"
                           style="display:inline;">
-
                         @csrf
                         @method('DELETE')
-
                         <button class="btn-delete"
                                 onclick="return confirm('Delete this usage?')">
                             Delete
                         </button>
-
                     </form>
                 </td>
                 @endif
-
             </tr>
         @endforeach
-
         </tbody>
-
     </table>
 
-    {{-- STAFF + ADMIN PDF --}}
+    {{-- ✅ appends() keeps search keyword across pages --}}
+    <div class="pagination-wrapper">
+        {{ $usages->appends(request()->query())->links() }}
+    </div>
+
     @if(in_array(auth()->user()->role, ['admin', 'staff']))
         <a href="{{ route('usages.pdf') }}" class="btn-pdf">
             Download PDF

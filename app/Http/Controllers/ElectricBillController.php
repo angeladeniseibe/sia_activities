@@ -12,29 +12,28 @@ class ElectricBillController extends Controller
     /**
      * Display all bills (ROLE-AWARE)
      */
-  public function index(Request $request)
-{
-    $search = $request->input('search');
+    public function index(Request $request)
+    {
+        $search = $request->input('search');
 
-    $query = ElectricBill::with('usage.customer');
+        $query = ElectricBill::with('usage.customer');
 
-    if ($search) {
-        $query->where(function ($q) use ($search) {
-            $q->where('bill_amount', 'like', "%$search%")
-              ->orWhere('status', 'like', "%$search%")
-              ->orWhere('due_date', 'like', "%$search%")
-              ->orWhereHas('usage.customer', function ($c) use ($search) {
-                  $c->where('name', 'like', "%$search%");
-              });
-        });
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('bill_amount', 'like', "%$search%")
+                  ->orWhere('status', 'like', "%$search%")
+                  ->orWhere('due_date', 'like', "%$search%")
+                  ->orWhereHas('usage.customer', function ($c) use ($search) {
+                      $c->where('name', 'like', "%$search%");
+                  });
+            });
+        }
+
+        // ✅ paginate() instead of get()
+        $bills = $query->oldest()->paginate(10);
+
+        return view('bills.index', compact('bills', 'search'));
     }
-
-    $bills = $query->latest()->get();
-
-    return view('bills.index', compact('bills', 'search'));
-}
-
-
 
     /**
      * Show create form
@@ -57,7 +56,6 @@ class ElectricBillController extends Controller
      */
     public function store(Request $request)
     {
-
         $request->validate([
             'usage_id' => 'required|exists:electric_usages,id',
             'bill_amount' => 'required|numeric',
@@ -151,7 +149,7 @@ class ElectricBillController extends Controller
     }
 
     /**
-     * 🔐 ROLE SECURITY CHECK
+     * Role Security Check
      */
     private function authorizeBill($bill)
     {

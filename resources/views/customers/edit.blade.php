@@ -94,18 +94,6 @@
         <label>Date of Birth:</label>
         <input type="date" name="dob" value="{{ $customer->dob }}" required>
 
-        <!-- ✅ ADDED USER ASSIGNMENT -->
-        <label>Assign User:</label>
-        <select name="user_id">
-            <option value="">-- Unassigned --</option>
-            @foreach($users as $user)
-                <option value="{{ $user->id }}"
-                    {{ $customer->user_id == $user->id ? 'selected' : '' }}>
-                    {{ $user->name }}
-                </option>
-            @endforeach
-        </select>
-
         <div class="button-group">
             <button type="submit">Update Customer</button>
             <a href="{{ route('customers.index') }}" class="btn-cancel">Cancel</a>

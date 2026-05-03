@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>Edit Bill</title>
@@ -18,14 +18,27 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
+        h2 {
+            text-align: center;
+        }
+
         label {
             font-weight: bold;
+            display: block;
+            margin-top: 10px;
         }
 
         input, select {
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        input:focus, select:focus {
+            border-color: #28a745;
+            outline: none;
         }
 
         .btn-update {
@@ -34,6 +47,11 @@
             padding: 10px 15px;
             border: none;
             border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-update:hover {
+            background: darkgreen;
         }
 
         .btn-cancel {
@@ -42,6 +60,11 @@
             padding: 10px 15px;
             text-decoration: none;
             border-radius: 6px;
+            margin-left: 5px;
+        }
+
+        .btn-cancel:hover {
+            background: #555;
         }
     </style>
 </head>

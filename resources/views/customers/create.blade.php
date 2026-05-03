@@ -88,7 +88,6 @@
             background-color: #6c757d;
             color: white;
             text-align: center;
-            line-height: normal;
         }
 
         .btn-cancel:hover {
@@ -119,17 +118,6 @@
 
         <label for="dob">Date of Birth:</label>
         <input type="date" id="dob" name="dob" required>
-
-        <!-- ✅ ADDED STEP 5: Assign User -->
-        <label for="user_id">Assign to User:</label>
-        <select id="user_id" name="user_id">
-            <option value="">-- Unassigned --</option>
-            @foreach($users as $user)
-                <option value="{{ $user->id }}">
-                    {{ $user->name }}
-                </option>
-            @endforeach
-        </select>
 
         <div class="button-group">
             <button type="submit">Save Customer</button>

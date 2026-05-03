@@ -54,19 +54,22 @@
 
     .button-group {
         display: flex;
-        justify-content: flex-start;
         gap: 10px;
     }
 
-    /* Remove default button styling (IMPORTANT FIX) */
-    /* button {
+    .btn-save {
         background-color: #28a745;
         color: white;
+        padding: 10px 20px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
     }
 
-    button:hover {
+    .btn-save:hover {
         background-color: #218838;
-    } */
+    }
 
     .btn-cancel {
         background-color: #6c757d;
@@ -75,43 +78,11 @@
         padding: 10px 20px;
         border-radius: 6px;
         text-decoration: none;
+        font-size: 14px;
     }
 
     .btn-cancel:hover {
         background-color: #5a6268;
-    }
-
-    /* ----------------------------------- */
-    /* 🔵 EDIT & 🔴 DELETE BUTTONS          */
-    /* ----------------------------------- */
-
-    .action-btn {
-        padding: 10px 20px;
-        border-radius: 6px;
-        border: none;
-        color: white;
-        cursor: pointer;
-        text-decoration: none;
-        font-size: 14px;
-        transition: background-color 0.3s;
-    }
-
-    /* Edit button = blue */
-    .edit-btn {
-        background-color: #007bff;
-    }
-
-    .edit-btn:hover {
-        background-color: #0069d9;
-    }
-
-    /* Delete button = red */
-    .delete-btn {
-        background-color: #dc3545;
-    }
-
-    .delete-btn:hover {
-        background-color: #c82333;
     }
     </style>
 </head>
@@ -126,30 +97,31 @@
         @csrf
         @method('PUT')
 
-        <label for="customer_id">Customer:</label>
-        <select name="customer_id" id="customer_id" required>
+        <label>Customer:</label>
+        <select name="customer_id" required>
             <option value="">-- Select Customer --</option>
             @foreach($customers as $c)
-                <option value="{{ $c->id }}" {{ $usage->customer_id == $c->id ? 'selected' : '' }}>
+                <option value="{{ $c->id }}"
+                    {{ $usage->customer_id == $c->id ? 'selected' : '' }}>
                     {{ $c->name }}
                 </option>
             @endforeach
         </select>
 
-        <label for="kilowatts_used">Kilowatts Used:</label>
-        <input type="number" id="kilowatts_used" name="kilowatts_used" value="{{ $usage->kilowatts_used }}" required>
+        <label>Kilowatts Used:</label>
+        <input type="number" name="kilowatts_used" value="{{ $usage->kilowatts_used }}" required>
 
-        <label for="rate_per_kwh">Rate per KWH:</label>
-        <input type="number" step="0.01" id="rate_per_kwh" name="rate_per_kwh" value="{{ $usage->rate_per_kwh }}" required>
+        <label>Rate per KWH:</label>
+        <input type="number" step="0.01" name="rate_per_kwh" value="{{ $usage->rate_per_kwh }}" required>
 
-        <label for="month">Month:</label>
-        <input type="text" id="month" name="month" value="{{ $usage->month }}" required>
+        <label>Month:</label>
+        <input type="text" name="month" value="{{ $usage->month }}" required>
 
-        <label for="year">Year:</label>
-        <input type="number" id="year" name="year" value="{{ $usage->year }}" required>
+        <label>Year:</label>
+        <input type="number" name="year" value="{{ $usage->year }}" required>
 
         <div class="button-group">
-            <button type="submit" class="action-btn edit-btn">
+            <button type="submit" class="btn-save">
                 Update Usage
             </button>
 
