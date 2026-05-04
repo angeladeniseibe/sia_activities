@@ -114,7 +114,28 @@
         display: inline-block;
     }
 
-    /* Styled Pagination */
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-block;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        padding: 10px 14px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        text-align: center;
+    }
+
     .pagination-wrapper {
         margin-top: 20px;
         display: flex;
@@ -176,15 +197,24 @@
 
     <h2 class="text-center mb-3">Payment Records</h2>
 
+    {{-- ✅ Success message --}}
+    @if(session('success'))
+        <div class="alert-success">{{ session('success') }}</div>
+    @endif
+
     <div class="top-bar">
         <a href="{{ route('dashboard') }}" class="btn-dashboard">← Dashboard</a>
-        <a href="{{ route('payments.create') }}" class="btn-create">+ Create Payment</a>
+
+        {{-- Only admin can create payment --}}
+        @if(auth()->user()->role === 'admin')
+            <a href="{{ route('payments.create') }}" class="btn-create">+ Create Payment</a>
+        @endif
     </div>
 
     <table>
         <thead>
             <tr>
-                <th>Payment ID</th>
+                <th>ID</th>
                 <th>Customer</th>
                 <th>Month</th>
                 <th>Amount Paid</th>
@@ -200,9 +230,24 @@
                 <td>{{ $p->customer->name }}</td>
                 <td>{{ $p->bill->usage->month }}</td>
                 <td>{{ $p->amount_paid }}</td>
-                <td>{{ $p->date_paid }}</td>
+
+                {{-- ✅ Date only — no time --}}
+                <td>{{ \Carbon\Carbon::parse($p->date_paid)->format('Y-m-d') }}</td>
+
                 <td class="actions-cell">
                     <a href="{{ route('payments.edit', $p->id) }}" class="btn-edit">Edit</a>
+
+                    {{-- Only admin can delete --}}
+                    @if(auth()->user()->role === 'admin')
+                        <form action="{{ route('payments.destroy', $p->id) }}"
+                              method="POST"
+                              style="display:inline;"
+                              onsubmit="return confirm('Delete this payment?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn-delete">Delete</button>
+                        </form>
+                    @endif
                 </td>
             </tr>
         @endforeach
@@ -210,7 +255,7 @@
     </table>
 
     <div class="pagination-wrapper">
-        {{ $payments->links() }}
+        {{ $payments->appends(request()->query())->links() }}
     </div>
 
     <a href="{{ route('payments.pdf') }}" class="btn-pdf">Download PDF</a>

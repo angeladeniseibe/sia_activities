@@ -69,7 +69,6 @@
         background: linear-gradient(135deg, #dcedc8, #fff8e1);
     }
 
-    /* ✅ Uniform button size across all pages */
     .btn-edit {
         background: #28a745;
         color: white;
@@ -137,7 +136,6 @@
         font-size: 13px;
     }
 
-    /* Styled Pagination */
     .pagination-wrapper {
         margin-top: 20px;
         display: flex;
@@ -200,14 +198,11 @@
     <h2 class="text-center mb-3">Electric Usages</h2>
 
     <div class="top-bar">
-        <a href="{{ route('dashboard') }}" class="btn-dashboard">
-            ← Dashboard
-        </a>
+        <a href="{{ route('dashboard') }}" class="btn-dashboard">← Dashboard</a>
 
-        @if(in_array(auth()->user()->role, ['admin', 'staff']))
-            <a href="{{ route('usages.create') }}" class="btn-add">
-                + Add Usage
-            </a>
+        {{-- ✅ Only admin can add --}}
+        @if(auth()->user()->role === 'admin')
+            <a href="{{ route('usages.create') }}" class="btn-add">+ Add Usage</a>
         @endif
     </div>
 
@@ -216,10 +211,7 @@
                name="search"
                value="{{ request('search') }}"
                placeholder="Search month, year, or customer">
-
-        <button type="submit" class="btn-add">
-            Search
-        </button>
+        <button type="submit" class="btn-add">Search</button>
     </form>
 
     <table>
@@ -232,7 +224,8 @@
                 <th>Month</th>
                 <th>Year</th>
 
-                @if(auth()->user()->role === 'admin')
+                {{-- ✅ Admin + Staff see Actions column --}}
+                @if(in_array(auth()->user()->role, ['admin', 'staff']))
                     <th class="actions-col">Actions</th>
                 @endif
             </tr>
@@ -248,22 +241,23 @@
                 <td>{{ $usage->month }}</td>
                 <td>{{ $usage->year }}</td>
 
-                @if(auth()->user()->role === 'admin')
+                {{-- ✅ Admin gets Edit+Delete, Staff gets Edit only --}}
+                @if(in_array(auth()->user()->role, ['admin', 'staff']))
                 <td class="actions-cell">
-                    <a href="{{ route('usages.edit', $usage->id) }}" class="btn-edit">
-                        Edit
-                    </a>
+                    <a href="{{ route('usages.edit', $usage->id) }}" class="btn-edit">Edit</a>
 
-                    <form action="{{ route('usages.destroy', $usage->id) }}"
-                          method="POST"
-                          style="display:inline;">
-                        @csrf
-                        @method('DELETE')
-                        <button class="btn-delete"
-                                onclick="return confirm('Delete this usage?')">
-                            Delete
-                        </button>
-                    </form>
+                    @if(auth()->user()->role === 'admin')
+                        <form action="{{ route('usages.destroy', $usage->id) }}"
+                              method="POST"
+                              style="display:inline;">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn-delete"
+                                    onclick="return confirm('Delete this usage?')">
+                                Delete
+                            </button>
+                        </form>
+                    @endif
                 </td>
                 @endif
             </tr>
@@ -271,15 +265,12 @@
         </tbody>
     </table>
 
-    {{-- ✅ appends() keeps search keyword across pages --}}
     <div class="pagination-wrapper">
         {{ $usages->appends(request()->query())->links() }}
     </div>
 
     @if(in_array(auth()->user()->role, ['admin', 'staff']))
-        <a href="{{ route('usages.pdf') }}" class="btn-pdf">
-            Download PDF
-        </a>
+        <a href="{{ route('usages.pdf') }}" class="btn-pdf">Download PDF</a>
     @endif
 
 </div>

@@ -17,7 +17,6 @@ class ElectricUsageController extends Controller
 
         $query = ElectricUsage::with('customer');
 
-        // ✅ role is 'customer', filter by linked customer
         if ($user->role === 'customer') {
             $customer = Customer::where('user_id', $user->id)->first();
 
@@ -39,7 +38,7 @@ class ElectricUsageController extends Controller
         }
 
         $usages = $query->orderBy('id', 'asc')
-                        ->paginate(5)
+                        ->paginate(10) // ✅ changed from 5 to 10
                         ->withQueryString();
 
         return view('usages.index', compact('usages', 'search'));

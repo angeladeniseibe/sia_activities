@@ -36,6 +36,19 @@
         margin-top: 5px;
         border: 1px solid #ccc;
         border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    input[readonly] {
+        background: #f0f0f0;
+        color: #333;
+        cursor: not-allowed;
+    }
+
+    .calc-hint {
+        font-size: 12px;
+        color: #888;
+        margin-top: 4px;
     }
 
     .btn-save {
@@ -47,6 +60,8 @@
         border: none;
         border-radius: 6px;
         cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
     }
 
     .btn-save:hover {
@@ -74,17 +89,26 @@
         @csrf
 
         <label>Select Usage:</label>
-        <select name="usage_id" required>
+        <select name="usage_id" id="usage_select" required>
             <option value="">-- Select Usage --</option>
             @foreach($usages as $u)
-                <option value="{{ $u->id }}">
+                <option value="{{ $u->id }}"
+                        data-kwh="{{ $u->kilowatts_used }}"
+                        data-rate="{{ $u->rate_per_kwh }}">
                     {{ $u->customer->name }} - {{ $u->month }} ({{ $u->kilowatts_used }} kWh)
                 </option>
             @endforeach
         </select>
 
         <label>Bill Amount:</label>
-        <input type="number" name="bill_amount" required>
+        <input type="number"
+               name="bill_amount"
+               id="bill_amount"
+               step="0.01"
+               readonly
+               placeholder="Auto-calculated"
+               required>
+        <span class="calc-hint">Automatically calculated: KWH Used × Rate per KWH</span>
 
         <label>Status:</label>
         <select name="status" required>
@@ -101,5 +125,23 @@
     <a href="{{ route('bills.index') }}" class="back">← Back</a>
 
 </div>
+
+<script>
+    const usageSelect  = document.getElementById('usage_select');
+    const billAmountInput = document.getElementById('bill_amount');
+
+    usageSelect.addEventListener('change', function () {
+        const selected = this.options[this.selectedIndex];
+        const kwh  = parseFloat(selected.getAttribute('data-kwh'))  || 0;
+        const rate = parseFloat(selected.getAttribute('data-rate')) || 0;
+
+        if (kwh > 0 && rate > 0) {
+            const total = (kwh * rate).toFixed(2);
+            billAmountInput.value = total;
+        } else {
+            billAmountInput.value = '';
+        }
+    });
+</script>
 
 @endsection

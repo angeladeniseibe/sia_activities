@@ -25,8 +25,12 @@ class PaymentController extends Controller
 
         // customer → only own records
         else {
+            $customer = Customer::where('user_id', $user->id)->first();
+
             $payments = Payment::with('customer', 'bill.usage')
-                ->where('customer_id', $user->customer_id)
+                ->when($customer, function ($q) use ($customer) {
+                    $q->where('customer_id', $customer->id);
+                })
                 ->oldest()
                 ->paginate(10);
         }
@@ -41,17 +45,27 @@ class PaymentController extends Controller
         if (!$user) abort(403);
 
         // customers dropdown
-        $customers = Customer::when($user->role === 'customer', function ($q) use ($user) {
-            $q->where('id', $user->customer_id);
-        })->get();
+        $customers = Customer::when(
+            in_array($user->role, ['user', 'customer']),
+            function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            }
+        )->get();
 
-        // bills dropdown
-        $bills = ElectricBill::where('status', 'unpaid')
-            ->when($user->role === 'customer', function ($q) use ($user) {
-                $q->whereHas('usage', function ($q2) use ($user) {
-                    $q2->where('customer_id', $user->customer_id);
-                });
-            })
+        // ✅ bills dropdown — load with usage.customer so JS filter works
+        $bills = ElectricBill::with('usage.customer')
+            ->where('status', 'unpaid')
+            ->when(
+                in_array($user->role, ['user', 'customer']),
+                function ($q) use ($user) {
+                    $customer = Customer::where('user_id', $user->id)->first();
+                    if ($customer) {
+                        $q->whereHas('usage', function ($q2) use ($customer) {
+                            $q2->where('customer_id', $customer->id);
+                        });
+                    }
+                }
+            )
             ->get();
 
         return view('payments.create', compact('customers', 'bills'));
@@ -61,9 +75,7 @@ class PaymentController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user) {
-            abort(403);
-        }
+        if (!$user) abort(403);
 
         // ONLY admin + staff can add payments
         if (!in_array($user->role, ['admin', 'staff'])) {
@@ -74,6 +86,7 @@ class PaymentController extends Controller
             'customer_id' => 'required|exists:customers,id',
             'bill_id'     => 'required|exists:electric_bills,id',
             'amount_paid' => 'required|numeric|min:0',
+            'date_paid'   => 'required|date',  // ✅ validate date
         ]);
 
         $bill = ElectricBill::findOrFail($validated['bill_id']);
@@ -82,14 +95,16 @@ class PaymentController extends Controller
             'customer_id' => $validated['customer_id'],
             'bill_id'     => $validated['bill_id'],
             'amount_paid' => $validated['amount_paid'],
-            'date_paid'   => now(),
+            'date_paid'   => $validated['date_paid'], // ✅ date only, no time
         ]);
 
         if ($validated['amount_paid'] >= $bill->bill_amount) {
             $bill->update(['status' => 'paid']);
         }
 
-        return redirect()->back()->with('success', 'Payment recorded successfully!');
+        // ✅ redirect to index with success message
+        return redirect()->route('payments.index')
+            ->with('success', 'Payment recorded successfully!');
     }
 
     public function edit(string $id)
@@ -140,8 +155,12 @@ class PaymentController extends Controller
         if (in_array($user->role, ['admin', 'staff'])) {
             $payments = Payment::with('customer', 'bill.usage')->get();
         } else {
+            $customer = Customer::where('user_id', $user->id)->first();
+
             $payments = Payment::with('customer', 'bill.usage')
-                ->where('customer_id', $user->customer_id)
+                ->when($customer, function ($q) use ($customer) {
+                    $q->where('customer_id', $customer->id);
+                })
                 ->get();
         }
 
@@ -162,8 +181,10 @@ class PaymentController extends Controller
             return;
         }
 
-        // customer restriction
-        if ($payment->customer_id !== $user->customer_id) {
+        // customer restriction via user_id lookup
+        $customer = Customer::where('user_id', $user->id)->first();
+
+        if (!$customer || $payment->customer_id !== $customer->id) {
             abort(403, 'Unauthorized action.');
         }
     }

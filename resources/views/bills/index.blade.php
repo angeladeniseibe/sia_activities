@@ -139,7 +139,6 @@
         font-size: 13px;
     }
 
-    /* Styled Pagination */
     .pagination-wrapper {
         margin-top: 20px;
         display: flex;
@@ -204,7 +203,8 @@
     <div class="top-bar">
         <a href="{{ route('dashboard') }}" class="btn-dashboard">← Dashboard</a>
 
-        @if(in_array(auth()->user()->role, ['admin', 'staff']))
+        {{-- ✅ Only admin can add --}}
+        @if(auth()->user()->role === 'admin')
             <a href="{{ route('bills.create') }}" class="btn-add">+ Add Bill</a>
         @endif
     </div>
@@ -227,7 +227,8 @@
                 <th>Status</th>
                 <th>Due Date</th>
 
-                @if(auth()->user()->role === 'admin')
+                {{-- ✅ Admin + Staff see Actions column --}}
+                @if(in_array(auth()->user()->role, ['admin', 'staff']))
                     <th class="actions-col">Action</th>
                 @endif
             </tr>
@@ -243,17 +244,21 @@
                 <td>{{ $b->status }}</td>
                 <td>{{ $b->due_date }}</td>
 
-                @if(auth()->user()->role === 'admin')
+                {{-- ✅ Admin gets Edit+Delete, Staff gets Edit only --}}
+                @if(in_array(auth()->user()->role, ['admin', 'staff']))
                 <td class="actions-cell">
                     <a href="{{ route('bills.edit', $b->id) }}" class="btn-edit">Edit</a>
-                    <form action="{{ route('bills.destroy', $b->id) }}"
-                          method="POST"
-                          style="display:inline;"
-                          onsubmit="return confirm('Delete this bill?')">
-                        @csrf
-                        @method('DELETE')
-                        <button class="btn-delete">Delete</button>
-                    </form>
+
+                    @if(auth()->user()->role === 'admin')
+                        <form action="{{ route('bills.destroy', $b->id) }}"
+                              method="POST"
+                              style="display:inline;"
+                              onsubmit="return confirm('Delete this bill?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn-delete">Delete</button>
+                        </form>
+                    @endif
                 </td>
                 @endif
             </tr>
@@ -261,7 +266,6 @@
         </tbody>
     </table>
 
-    {{-- ✅ appends() keeps search keyword across pages --}}
     <div class="pagination-wrapper">
         {{ $bills->appends(request()->query())->links() }}
     </div>

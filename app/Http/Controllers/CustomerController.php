@@ -20,7 +20,7 @@ class CustomerController extends Controller
             ->when($user->role !== 'admin', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             })
-            ->paginate(5);
+            ->paginate(10); // ✅ changed from 5 to 10
 
         return view('customers.index', compact('customers', 'search'));
     }
@@ -35,17 +35,17 @@ class CustomerController extends Controller
         $user = auth()->user();
 
         $data = $request->validate([
-            'name' => 'required',
+            'name'    => 'required',
             'address' => 'required',
-            'gender' => 'required',
-            'dob' => 'required|date',
+            'gender'  => 'required',
+            'dob'     => 'required|date',
         ]);
 
         Customer::create([
-            'name' => $data['name'],
+            'name'    => $data['name'],
             'address' => $data['address'],
-            'gender' => $data['gender'],
-            'dob' => $data['dob'],
+            'gender'  => $data['gender'],
+            'dob'     => $data['dob'],
             'user_id' => $user->id,
         ]);
 
@@ -65,10 +65,10 @@ class CustomerController extends Controller
         $this->authorize($customer);
 
         $customer->update($request->validate([
-            'name' => 'required',
+            'name'    => 'required',
             'address' => 'required',
-            'gender' => 'required',
-            'dob' => 'required|date',
+            'gender'  => 'required',
+            'dob'     => 'required|date',
         ]));
 
         return redirect()->route('customers.index')
