@@ -106,7 +106,9 @@
                 <th>Month</th>
                 <th>Amount Paid</th>
                 <th>Date Paid</th>
-                <th>Action</th>
+                  @if(auth()->user()->role === 'admin')
+            <th>Action</th>
+                  @endif
             </tr>
         </thead>
 
@@ -118,9 +120,14 @@
                 <td>{{ $p->bill->usage->month }}</td>
                 <td>{{ $p->amount_paid }}</td>
                 <td>{{ $p->date_paid }}</td>
-                <td>
-                    <a href="{{ route('payments.edit', $p->id) }}" class="btn-edit">Edit</a>
-                </td>
+                   @if(auth()->user()->role === 'admin')
+            <td>
+                <a href="{{ route('payments.edit', $p->id) }}" class="btn-edit">
+                    Edit
+                </a>
+            </td>
+        @endif
+                
             </tr>
         @endforeach
         </tbody>
